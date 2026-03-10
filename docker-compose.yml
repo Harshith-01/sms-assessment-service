@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  assessment-service:
+    build: .
+    container_name: assessment-service
+    env_file:
+      - .env
+    ports:
+      - "8005:8000"
+    networks:
+      - school-network
+
+networks:
+  school-network:
+    external: true
