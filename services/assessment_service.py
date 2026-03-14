@@ -370,9 +370,13 @@ def register_students(db: Session, exam_subject_id: int, student_ids: list[str])
         raise HTTPException(status_code=400, detail="No students provided")
 
     created_count = 0
+    skipped_count = 0
+    errors: list[str] = []
+
     for student_id in unique_ids:
         if not db.get(Student, student_id):
-            raise HTTPException(status_code=404, detail=f"Student not found: {student_id}")
+            errors.append(f"{student_id}: Student not found")
+            continue
 
         enrollment = db.query(StudentSubjectEnrollment.id).filter(
             StudentSubjectEnrollment.student_id == student_id,
@@ -381,16 +385,15 @@ def register_students(db: Session, exam_subject_id: int, student_ids: list[str])
             StudentSubjectEnrollment.class_section_id == exam.class_section_id,
         ).first()
         if not enrollment:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Student not enrolled for exam subject: {student_id}",
-            )
+            errors.append(f"{student_id}: Student is not enrolled for this exam subject")
+            continue
 
         exists = db.query(AssessmentExamRegistration.id).filter(
             AssessmentExamRegistration.exam_subject_id == exam_subject_id,
             AssessmentExamRegistration.student_id == student_id,
         ).first()
         if exists:
+            skipped_count += 1
             continue
 
         db.add(
@@ -404,7 +407,12 @@ def register_students(db: Session, exam_subject_id: int, student_ids: list[str])
         created_count += 1
 
     db.commit()
-    return created_count
+    return {
+        "created": created_count,
+        "processed": len(unique_ids),
+        "skipped": skipped_count,
+        "errors": errors,
+    }
 
 
 def _ensure_teacher_can_enter_marks(db: Session, exam_subject_id: int, actor_user: dict):

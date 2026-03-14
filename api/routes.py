@@ -326,8 +326,14 @@ def register_students(
     db: Session = Depends(get_db),
     user: dict = Depends(require_role(["ADMIN"])),
 ):
-    created = assessment_service.register_students(db, data.exam_subject_id, data.student_ids)
-    return {"message": "Students registered", "count": created}
+    result = assessment_service.register_students(db, data.exam_subject_id, data.student_ids)
+    return {
+        "message": "Student registration processed",
+        "count": result["created"],
+        "processed": result["processed"],
+        "skipped": result["skipped"],
+        "errors": result["errors"],
+    }
 
 
 @router.post("/marks/bulk", response_model=BulkOperationResponse)
@@ -426,6 +432,137 @@ def student_academic_history(
 
     total, rows = assessment_service.list_academic_history(db, student_id, page, page_size)
     return {"page": page, "page_size": page_size, "total": total, "data": rows}
+
+
+# =====================================================================
+# HOLISTIC PROGRESS REPORT
+# =====================================================================
+
+@router.get("/progress/student/{student_id}")
+def student_holistic_progress(
+    student_id: str,
+    class_section_id: int = Query(..., description="Current class section ID"),
+    academic_term_id: int = Query(..., description="Current academic term ID"),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_role(["ADMIN", "TEACHER", "STUDENT", "PARENT", "SERVICE"])),
+):
+    """
+    Holistic student progress report combining:
+    - Latest published report card (exam performance, subject grades)
+    - Assignment submission rate (total assigned vs submitted)
+    - Attendance summary (via attendance-service)
+    """
+    from fastapi import HTTPException
+    from services.attendance_client import get_student_attendance_summary
+
+    # --- Guard for STUDENT role ---
+    if user["role"] == "STUDENT":
+        token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        if token_student_id != student_id:
+            raise HTTPException(status_code=403, detail="Students can only view their own progress")
+
+    # --- Latest published report card ---
+    from models.sql_models import (
+        AssessmentReportCard,
+        AssessmentReportCardSubject,
+        AssessmentAssignment,
+        AssessmentAssignmentSubmission,
+        Subject,
+    )
+
+    latest_rc = (
+        db.query(AssessmentReportCard)
+        .filter(
+            AssessmentReportCard.student_id == student_id,
+            AssessmentReportCard.publish_status == "PUBLISHED",
+        )
+        .order_by(AssessmentReportCard.generated_at.desc())
+        .first()
+    )
+
+    report_card_summary = None
+    if latest_rc:
+        rc_subjects = (
+            db.query(AssessmentReportCardSubject)
+            .filter(AssessmentReportCardSubject.report_card_id == latest_rc.id)
+            .all()
+        )
+        report_card_summary = {
+            "report_card_id": latest_rc.id,
+            "academic_year_id": latest_rc.academic_year_id,
+            "academic_term_id": latest_rc.academic_term_id,
+            "report_type": latest_rc.report_type,
+            "total_max_marks": float(latest_rc.total_max_marks) if latest_rc.total_max_marks else None,
+            "total_obtained": float(latest_rc.total_obtained) if latest_rc.total_obtained else None,
+            "percentage": float(latest_rc.percentage) if latest_rc.percentage else None,
+            "overall_grade": latest_rc.overall_grade,
+            "result_status": latest_rc.result_status,
+            "rank_in_class": latest_rc.rank_in_class,
+            "subjects": [
+                {
+                    "subject_id": s.subject_id,
+                    "subject_obtained": float(s.subject_obtained) if s.subject_obtained else None,
+                    "subject_max_marks": float(s.subject_max_marks) if s.subject_max_marks else None,
+                    "subject_percentage": float(s.subject_percentage) if s.subject_percentage else None,
+                    "grade_label": s.grade_label,
+                    "result_status": s.result_status,
+                }
+                for s in rc_subjects
+            ],
+        }
+
+    # --- Assignment submission rate (for this class-section + term) ---
+    total_assignments = (
+        db.query(AssessmentAssignment)
+        .filter(
+            AssessmentAssignment.class_section_id == class_section_id,
+            AssessmentAssignment.academic_term_id == academic_term_id,
+            AssessmentAssignment.status == "PUBLISHED",
+        )
+        .count()
+    )
+
+    submitted_assignments = (
+        db.query(AssessmentAssignmentSubmission)
+        .join(
+            AssessmentAssignment,
+            AssessmentAssignment.id == AssessmentAssignmentSubmission.assignment_id,
+        )
+        .filter(
+            AssessmentAssignment.class_section_id == class_section_id,
+            AssessmentAssignment.academic_term_id == academic_term_id,
+            AssessmentAssignmentSubmission.student_id == student_id,
+            AssessmentAssignmentSubmission.is_latest.is_(True),
+            AssessmentAssignmentSubmission.submission_status.in_(["SUBMITTED", "LATE_SUBMITTED"]),
+        )
+        .count()
+    )
+
+    submission_rate = (
+        round((submitted_assignments / total_assignments) * 100, 2)
+        if total_assignments > 0
+        else None
+    )
+
+    # --- Attendance (cross-service call) ---
+    attendance_summary = get_student_attendance_summary(
+        student_id=student_id,
+        class_section_id=class_section_id,
+        academic_term_id=academic_term_id,
+    )
+
+    return {
+        "student_id": student_id,
+        "class_section_id": class_section_id,
+        "academic_term_id": academic_term_id,
+        "report_card": report_card_summary,
+        "assignment_stats": {
+            "total_published_assignments": total_assignments,
+            "submitted": submitted_assignments,
+            "submission_rate_percent": submission_rate,
+        },
+        "attendance": attendance_summary,
+    }
 
 
 @router.get("/history/student/{student_id}/assignments", response_model=PagedResponse)

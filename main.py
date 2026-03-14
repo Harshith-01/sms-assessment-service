@@ -49,9 +49,14 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 
+trusted_hosts = list(ALLOWED_HOSTS) if ALLOWED_HOSTS else []
+for host in ["localhost", "127.0.0.1", "testserver"]:
+    if host not in trusted_hosts:
+        trusted_hosts.append(host)
+
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=ALLOWED_HOSTS if ALLOWED_HOSTS else ["localhost"],
+    allowed_hosts=trusted_hosts,
 )
 
 

@@ -21,6 +21,8 @@ Health endpoint: `/health`
 - Assignment mark verification
 - Report card generation and publication
 - Student exam/academic/assignment history retrieval
+- Student progress summary endpoint
+- Partial-success bulk processing with row-level error reporting
 
 ## Security Model
 
@@ -51,6 +53,15 @@ All endpoints are under `/assessment`.
 - `GET /history/student/{student_id}/exam`
 - `GET /history/student/{student_id}/academic`
 - `GET /history/student/{student_id}/assignments`
+- `GET /progress/student/{student_id}`
+
+## Behavior Updates (2026)
+
+- `POST /assessment/exam/register-students` now runs in partial-commit mode.
+	- Returns `created`, `processed`, `skipped`, and `errors` so valid rows are committed while invalid rows are reported.
+- Bulk operation responses are now standardized with optional metadata fields:
+	- `processed`, `skipped`, `errors` (in addition to `message`, `count`).
+- Progress endpoint (`GET /assessment/progress/student/{student_id}`) aggregates assignment and exam trends for dashboard use.
 
 ## Environment Variables
 

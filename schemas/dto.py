@@ -451,6 +451,9 @@ class MessageResponse(BaseModel):
 class BulkOperationResponse(BaseModel):
     message: str
     count: int
+    processed: int | None = None
+    skipped: int | None = None
+    errors: list[str] | None = None
 
 
 class StudentHistoryRow(BaseModel):
