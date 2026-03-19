@@ -30,10 +30,10 @@ def _has_required_role(actual_role: str, allowed_roles: list[str]) -> bool:
     actual = _normalize_role(actual_role)
     allowed = {_normalize_role(item) for item in allowed_roles}
 
-    if actual in {"SUPERADMIN", "SUPERADMIN1"}:
+    if actual in {"SUPERADMIN"}:
         return True
 
-    if "ADMIN" in allowed and actual in {"ADMIN", "SUPERADMIN", "SUPERADMIN1"}:
+    if "ADMIN" in allowed and actual in {"ADMIN", "SUPERADMIN"}:
         return True
 
     return actual in allowed

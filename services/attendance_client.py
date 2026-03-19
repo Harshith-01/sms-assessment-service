@@ -3,11 +3,29 @@ import os
 
 import requests
 from fastapi import HTTPException
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 ATTENDANCE_SERVICE_URL = os.getenv("ATTENDANCE_SERVICE_URL", "").rstrip("/")
 INTERNAL_SERVICE_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN", "")
 INTERNAL_SERVICE_NAME = os.getenv("INTERNAL_SERVICE_NAME", "assessment-service")
 TIMEOUT = 5
+
+
+def _session() -> requests.Session:
+    retry = Retry(
+        total=2,
+        connect=2,
+        read=2,
+        backoff_factor=0.3,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    sess = requests.Session()
+    sess.mount("http://", adapter)
+    sess.mount("https://", adapter)
+    return sess
 
 
 def _headers():
@@ -29,7 +47,7 @@ def get_student_attendance_summary(
     if not ATTENDANCE_SERVICE_URL:
         return None
     try:
-        r = requests.get(
+        r = _session().get(
             f"{ATTENDANCE_SERVICE_URL}/timetable-attendance/attendance/students/{student_id}/summary",
             params={
                 "class_section_id": class_section_id,

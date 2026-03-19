@@ -28,7 +28,7 @@ Health endpoint: `/health`
 
 - JWT Bearer token authentication
 - Role-based authorization with guarded endpoints
-- Supported roles in routes: `ADMIN`, `TEACHER`, `STUDENT`, `SERVICE`
+- Supported roles in routes: `ADMIN`, `TEACHER`, `STUDENT`, `PARENT`, `SERVICE`
 - Request rate limiting via `slowapi`
 - Trusted host filtering and CORS controls
 - Security headers middleware enabled
@@ -62,6 +62,7 @@ All endpoints are under `/assessment`.
 - Bulk operation responses are now standardized with optional metadata fields:
 	- `processed`, `skipped`, `errors` (in addition to `message`, `count`).
 - Progress endpoint (`GET /assessment/progress/student/{student_id}`) aggregates assignment and exam trends for dashboard use.
+	- Parent role access is enabled for holistic student progress visibility in parent-facing dashboards.
 
 ## Environment Variables
 
