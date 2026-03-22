@@ -28,6 +28,9 @@ class Settings(BaseSettings):
 settings = Settings()
 
 DATABASE_URL = settings.database_url
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 SECRET_KEY = settings.resolved_secret_key
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 SERVICE_NAME = settings.service_name
