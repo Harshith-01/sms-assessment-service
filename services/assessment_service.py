@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from sqlalchemy import and_, func, or_, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from core.db_errors import db_integrity_http_exception
 
 from models.sql_models import (
     AcademicTerm,
@@ -118,7 +119,7 @@ def create_grade_scale(db: Session, data: GradeScaleCreate, actor_user_id: str):
         return grade_scale
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Grade scale conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Grade scale conflict")
 
 
 def list_grade_scales(db: Session, page: int, page_size: int):
@@ -157,7 +158,7 @@ def update_grade_scale(db: Session, scale_id: int, data: GradeScaleUpdate):
         return grade_scale
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Grade scale conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Grade scale conflict")
 
 
 def delete_grade_scale(db: Session, scale_id: int):
@@ -182,7 +183,7 @@ def create_grade_band(db: Session, data: GradeBandCreate):
         return band
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Grade band conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Grade band conflict")
 
 
 def list_grade_bands(db: Session, scale_id: int, page: int, page_size: int):
@@ -223,7 +224,7 @@ def create_exam(db: Session, data: ExamCreate, actor_user_id: str):
         return exam
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Exam conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Exam conflict")
 
 
 def list_exams(db: Session, page: int, page_size: int, academic_year_id: int | None, class_section_id: int | None):
@@ -282,7 +283,7 @@ def update_exam(db: Session, exam_id: int, data: ExamUpdate):
         return exam
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Exam update conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Exam update conflict")
 
 
 def publish_exam(db: Session, exam_id: int, actor_user_id: str):
@@ -348,7 +349,7 @@ def create_exam_subject(db: Session, data: ExamSubjectCreate):
         return exam_subject
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Exam subject conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Exam subject conflict")
 
 
 def list_exam_subjects(db: Session, exam_id: int, page: int, page_size: int):
@@ -934,7 +935,7 @@ def create_component_weight(db: Session, data: ComponentWeightCreate, actor_user
         return model
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Component weight conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Component weight conflict")
 
 
 def list_component_weights(db: Session, page: int, page_size: int, academic_year_id: int | None):
@@ -973,7 +974,7 @@ def create_assignment(db: Session, data: AssignmentCreate, actor_user_id: str):
         return assignment
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Assignment conflict") from exc
+        raise db_integrity_http_exception(exc, fallback_status=409, fallback_detail="Assignment conflict")
 
 
 def list_assignments(

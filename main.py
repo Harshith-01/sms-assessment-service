@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, Response
+from sqlalchemy.exc import IntegrityError
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -13,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.routes import router
 from core.config import ALLOWED_HOSTS, ALLOWED_ORIGINS, SERVICE_NAME
+from core.db_errors import db_integrity_http_exception
 
 
 logging.basicConfig(
@@ -76,6 +78,12 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=400, content={"detail": exc.errors()})
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    parsed = db_integrity_http_exception(exc)
+    return JSONResponse(status_code=parsed.status_code, content={"detail": parsed.detail})
 
 
 app.include_router(router)
