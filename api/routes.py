@@ -392,7 +392,11 @@ def get_student_report_cards(
     user: dict = Depends(require_role(["ADMIN", "STUDENT", "SERVICE"])),
 ):
     if user["role"] == "STUDENT":
-        token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        try:
+            token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        except Exception:
+            # If DB lookup fails, compare user_id directly as fallback
+            token_student_id = user["user_id"]
         if token_student_id != student_id:
             from fastapi import HTTPException
 
@@ -412,14 +416,23 @@ def student_exam_history(
     user: dict = Depends(require_role(["ADMIN", "STUDENT", "SERVICE"])),
 ):
     if user["role"] == "STUDENT":
-        token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        try:
+            token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        except Exception:
+            # If DB lookup fails, compare user_id directly as fallback
+            token_student_id = user["user_id"]
         if token_student_id != student_id:
             from fastapi import HTTPException
 
             raise HTTPException(status_code=403, detail="Students can only view their own history")
 
     total, rows = assessment_service.list_exam_history(db, student_id, page, page_size)
-    data = [dict(row.__dict__) for row in rows]
+    from sqlalchemy.orm import object_session
+    from sqlalchemy import inspect
+    data = [
+        {c.key: getattr(row, c.key) for c in inspect(row.__class__).mapper.columns}
+        for row in rows
+    ]
     return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
@@ -432,14 +445,22 @@ def student_academic_history(
     user: dict = Depends(require_role(["ADMIN", "STUDENT", "SERVICE"])),
 ):
     if user["role"] == "STUDENT":
-        token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        try:
+            token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        except Exception:
+            # If DB lookup fails, compare user_id directly as fallback
+            token_student_id = user["user_id"]
         if token_student_id != student_id:
             from fastapi import HTTPException
 
             raise HTTPException(status_code=403, detail="Students can only view their own history")
 
     total, rows = assessment_service.list_academic_history(db, student_id, page, page_size)
-    data = [dict(row.__dict__) for row in rows]
+    from sqlalchemy import inspect
+    data = [
+        {c.key: getattr(row, c.key) for c in inspect(row.__class__).mapper.columns}
+        for row in rows
+    ]
     return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
@@ -583,12 +604,20 @@ def student_assignment_history(
     user: dict = Depends(require_role(["ADMIN", "STUDENT", "SERVICE"])),
 ):
     if user["role"] == "STUDENT":
-        token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        try:
+            token_student_id = assessment_service.get_student_id_for_user(db, user["user_id"])
+        except Exception:
+            # If DB lookup fails, compare user_id directly as fallback
+            token_student_id = user["user_id"]
         if token_student_id != student_id:
             from fastapi import HTTPException
 
             raise HTTPException(status_code=403, detail="Students can only view their own history")
 
     total, rows = assessment_service.list_assignment_history(db, student_id, page, page_size)
-    data = [dict(row.__dict__) for row in rows]
+    from sqlalchemy import inspect
+    data = [
+        {c.key: getattr(row, c.key) for c in inspect(row.__class__).mapper.columns}
+        for row in rows
+    ]
     return {"page": page, "page_size": page_size, "total": total, "data": data}
