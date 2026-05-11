@@ -303,6 +303,8 @@ class ReportCardSubjectOut(BaseModel):
     result_status: str | None
     absent_in_any_exam: bool
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ReportCardOut(BaseModel):
     id: int
@@ -323,6 +325,8 @@ class ReportCardOut(BaseModel):
     generated_at: datetime
     published_at: datetime | None
     subjects: list[ReportCardSubjectOut] = []
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AssignmentCreate(StrictBase):

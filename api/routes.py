@@ -58,7 +58,8 @@ def list_grade_scales(
     user: dict = Depends(require_role(["ADMIN", "TEACHER"])),
 ):
     total, rows = assessment_service.list_grade_scales(db, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [GradeScaleOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.put("/grade-scales/{scale_id}", response_model=GradeScaleOut)
@@ -99,7 +100,8 @@ def list_grade_bands(
     user: dict = Depends(require_role(["ADMIN", "TEACHER"])),
 ):
     total, rows = assessment_service.list_grade_bands(db, scale_id, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [GradeBandOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.post("/component-weights", response_model=ComponentWeightOut)
@@ -120,7 +122,8 @@ def list_component_weights(
     user: dict = Depends(require_role(["ADMIN", "TEACHER"])),
 ):
     total, rows = assessment_service.list_component_weights(db, page, page_size, academic_year_id)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [ComponentWeightOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.post("/exams", response_model=ExamOut)
@@ -142,7 +145,8 @@ def list_exams(
     user: dict = Depends(require_role(["ADMIN", "TEACHER", "SERVICE"])),
 ):
     total, rows = assessment_service.list_exams(db, page, page_size, academic_year_id, class_section_id)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [ExamOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.get("/exams/{exam_id}", response_model=ExamOut)
@@ -200,7 +204,8 @@ def list_exam_subjects(
     user: dict = Depends(require_role(["ADMIN", "TEACHER", "SERVICE"])),
 ):
     total, rows = assessment_service.list_exam_subjects(db, exam_id, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [ExamSubjectOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.post("/assignments", response_model=AssignmentOut)
@@ -230,7 +235,8 @@ def list_assignments(
         class_section_id,
         subject_id,
     )
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [AssignmentOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.get("/assignments/{assignment_id}", response_model=AssignmentOut)
@@ -393,7 +399,8 @@ def get_student_report_cards(
             raise HTTPException(status_code=403, detail="Students can only view their own report cards")
 
     total, rows = assessment_service.get_student_report_cards(db, student_id, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [ReportCardOut.model_validate(row) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.get("/history/student/{student_id}/exam", response_model=PagedResponse)
@@ -412,7 +419,8 @@ def student_exam_history(
             raise HTTPException(status_code=403, detail="Students can only view their own history")
 
     total, rows = assessment_service.list_exam_history(db, student_id, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [dict(row.__dict__) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 @router.get("/history/student/{student_id}/academic", response_model=PagedResponse)
@@ -431,7 +439,8 @@ def student_academic_history(
             raise HTTPException(status_code=403, detail="Students can only view their own history")
 
     total, rows = assessment_service.list_academic_history(db, student_id, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [dict(row.__dict__) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
 
 
 # =====================================================================
@@ -581,4 +590,5 @@ def student_assignment_history(
             raise HTTPException(status_code=403, detail="Students can only view their own history")
 
     total, rows = assessment_service.list_assignment_history(db, student_id, page, page_size)
-    return {"page": page, "page_size": page_size, "total": total, "data": rows}
+    data = [dict(row.__dict__) for row in rows]
+    return {"page": page, "page_size": page_size, "total": total, "data": data}
