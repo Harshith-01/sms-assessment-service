@@ -220,7 +220,7 @@ def list_assignments(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_db),
-    user: dict = Depends(require_role(["ADMIN", "TEACHER", "SERVICE"])),
+    user: dict = Depends(require_role(["ADMIN", "TEACHER", "SERVICE", "STUDENT"])),
 ):
     total, rows = assessment_service.list_assignments(
         db,
